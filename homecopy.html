@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Homecopy — Annonces immobilières par IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --blue: #2563EB; --blue-light: #EFF6FF; --blue-mid: #BFDBFE; --blue-dark: #1E40AF;
+    --accent: #F59E0B; --accent-light: #FEF3C7; --green: #10B981; --green-light: #D1FAE5;
+    --surface: #F8FAFC; --white: #FFFFFF; --border: #E2E8F0; --border-focus: #2563EB;
+    --text: #0F172A; --text-muted: #64748B; --text-light: #94A3B8;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(37,99,235,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+  nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: var(--blue); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+  .logo-dot { color: var(--accent); }
+  .nav-badge { background: var(--blue-light); color: var(--blue); font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+
+  .hero { background: linear-gradient(135deg, #EFF6FF 0%, #FEF3C7 100%); padding: 3rem 2rem 2.5rem; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(28px, 4vw, 42px); color: var(--text); letter-spacing: -1px; margin-bottom: 0.75rem; line-height: 1.15; }
+  .hero h1 span { color: var(--blue); }
+  .hero p { color: var(--text-muted); font-size: 16px; max-width: 520px; margin: 0 auto; font-weight: 300; }
+
+  /* TYPE SELECTOR */
+  .type-selector { display: flex; gap: 1rem; margin-bottom: 2rem; }
+  .type-btn { flex: 1; padding: 1.5rem 1rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--white); cursor: pointer; text-align: center; transition: all 0.2s; }
+  .type-btn:hover { border-color: var(--blue); }
+  .type-btn.active { border-color: var(--blue); background: var(--blue-light); }
+  .type-btn .type-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+  .type-btn .type-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); }
+  .type-btn.active .type-name { color: var(--blue); }
+  .type-btn .type-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .section-label { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .section-num { width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: white; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: var(--shadow); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+  input, select, textarea { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%; }
+  input:focus, select:focus, textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: var(--white); }
+  textarea { resize: vertical; }
+  select { cursor: pointer; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; background: var(--white); color: var(--text-muted); user-select: none; }
+  .chip:hover { border-color: var(--blue); color: var(--blue); }
+  .chip.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+  /* TOGGLE SWITCH */
+  .toggle-row { display: flex; align-items: center; gap: 12px; }
+  .toggle-label { font-size: 14px; font-weight: 500; color: var(--text); }
+  .toggle { position: relative; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--border); border-radius: 24px; transition: 0.2s; }
+  .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle input:checked + .toggle-slider { background: var(--blue); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+  .collapsible { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); animation: fadeIn 0.2s ease; }
+  .collapsible.open { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* UPLOAD */
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue); background: var(--blue-light); }
+  .upload-icon { width: 48px; height: 48px; background: var(--blue-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+  .upload-icon svg { width: 24px; height: 24px; stroke: var(--blue); }
+  .upload-zone p { color: var(--text-muted); font-size: 14px; }
+  .upload-zone span { color: var(--blue); font-weight: 500; }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-top: 1rem; }
+  .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb.selected-by-ai::after { content: '✦ IA'; position: absolute; bottom: 0; left: 0; right: 0; background: var(--blue); color: white; font-size: 10px; font-weight: 700; text-align: center; padding: 3px; }
+  .photo-thumb button { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .ai-analysis-bar { background: var(--blue-light); border: 1px solid var(--blue-mid); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--blue); margin-top: 1rem; display: none; }
+
+  /* FORMAT CARDS */
+  .format-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 0.5rem; }
+  @media (max-width: 600px) { .format-cards { grid-template-columns: 1fr; } }
+  .format-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1rem; cursor: pointer; transition: all 0.15s; background: var(--white); }
+  .format-card:hover { border-color: var(--blue); }
+  .format-card.selected { border-color: var(--blue); background: var(--blue-light); }
+  .format-card .format-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .format-card .format-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .format-card .format-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .format-card.selected .format-name { color: var(--blue); }
+
+  /* WORD COUNT */
+  .word-count { font-size: 12px; color: var(--text-light); text-align: right; margin-top: 4px; }
+  .word-count.over { color: #EF4444; }
+
+  /* GENERATE BTN */
+  .btn-generate { width: 100%; padding: 16px; background: var(--blue); color: white; border: none; border-radius: var(--radius); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 1.5rem; letter-spacing: 0.3px; }
+  .btn-generate:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .loading-state { display: none; text-align: center; padding: 3rem 1rem; }
+  .loader { width: 40px; height: 40px; border: 3px solid var(--blue-mid); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state p { color: var(--text-muted); font-size: 14px; }
+  .loading-state .loading-step { color: var(--blue); font-weight: 500; margin-top: 0.5rem; }
+
+  .results-section { display: none; margin-top: 2rem; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem; }
+  .results-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); }
+  .success-badge { display: flex; align-items: center; gap: 6px; background: var(--green-light); color: var(--green); padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+
+  .result-tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 1.25rem; overflow-x: auto; }
+  .result-tab { flex: 1; min-width: 120px; padding: 8px 16px; border: none; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--text-muted); white-space: nowrap; }
+  .result-tab.active { background: var(--white); color: var(--blue); box-shadow: var(--shadow); }
+
+  .result-panel { display: none; }
+  .result-panel.active { display: block; }
+  .result-text { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; font-size: 15px; line-height: 1.8; color: var(--text); white-space: pre-wrap; min-height: 160px; }
+
+  .fiche { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .fiche-header { background: var(--blue); padding: 1.25rem 1.5rem; color: white; }
+  .fiche-header h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 4px; }
+  .fiche-header p { font-size: 13px; opacity: 0.85; }
+  .fiche-body { padding: 1.25rem 1.5rem; }
+  .fiche-desc { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+
+  .social-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .social-cards { grid-template-columns: 1fr; } }
+  .social-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .social-header { padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text-muted); }
+  .social-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .social-body { padding: 14px; font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre-wrap; min-height: 120px; }
+
+  .action-bar { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+  .btn-action { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--border); background: var(--white); color: var(--text); }
+  .btn-action:hover { border-color: var(--blue); color: var(--blue); }
+  .btn-action.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .btn-action.primary:hover { background: var(--blue-dark); }
+  .btn-action svg { width: 15px; height: 15px; }
+
+  .error-box { display: none; background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-sm); padding: 1rem 1.25rem; font-size: 14px; color: #DC2626; margin-top: 1rem; }
+
+  /* VENDOR ANALYSIS */
+  .vendor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+  @media (max-width: 600px) { .vendor-grid { grid-template-columns: 1fr; } }
+  .vendor-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .vendor-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .vendor-card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .vendor-card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--text); }
+  .vendor-card-body { padding: 14px 16px; font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+  .vendor-card.full-width { grid-column: 1 / -1; }
+  .positioning-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .pos-under { background: #D1FAE5; color: #065F46; }
+  .pos-normal { background: #DBEAFE; color: #1E40AF; }
+  .pos-premium { background: #FEF3C7; color: #92400E; }
+  .vendor-tab { background: var(--accent-light) !important; color: #92400E !important; font-weight: 600 !important; }
+  .vendor-tab.active { background: var(--accent) !important; color: white !important; }
+
+  footer { text-align: center; padding: 2rem; color: var(--text-light); font-size: 13px; border-top: 1px solid var(--border); margin-top: 2rem; }
+  footer span { color: var(--blue); font-weight: 500; }
+
+  /* USAGE BANNER */
+  .usage-banner { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; box-shadow: var(--shadow); }
+  .usage-info { display: flex; align-items: center; gap: 12px; }
+  .usage-icon { font-size: 20px; }
+  .usage-text { font-size: 14px; color: var(--text); }
+  .usage-text strong { color: var(--blue); }
+  .usage-bar-wrap { width: 120px; height: 6px; background: var(--border); border-radius: 3px; margin-top: 4px; }
+  .usage-bar { height: 6px; border-radius: 3px; background: var(--blue); transition: width 0.3s; }
+  .usage-bar.warning { background: var(--accent); }
+  .usage-bar.danger { background: #EF4444; }
+  .btn-upgrade { padding: 8px 18px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn-upgrade:hover { background: var(--blue-dark); }
+  .btn-upgrade.accent { background: var(--accent); color: white; }
+
+  /* OVERLAY */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 200; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; }
+  .overlay.open { display: flex; }
+
+  /* PRICING MODAL */
+  .pricing-modal { background: var(--white); border-radius: 20px; max-width: 960px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2.5rem; box-shadow: 0 24px 80px rgba(0,0,0,0.2); }
+  .pricing-modal-header { text-align: center; margin-bottom: 2rem; }
+  .pricing-modal-header h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; color: var(--text); margin-bottom: 0.5rem; }
+  .pricing-modal-header p { color: var(--text-muted); font-size: 15px; }
+  .guarantee-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--green-light); color: #065F46; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; margin-top: 0.75rem; }
+
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.5rem; }
+  @media (max-width: 700px) { .pricing-grid { grid-template-columns: 1fr; } }
+
+  .pricing-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 1.5rem; position: relative; transition: all 0.2s; }
+  .pricing-card:hover { border-color: var(--blue); box-shadow: var(--shadow-lg); }
+  .pricing-card.popular { border-color: var(--blue); }
+  .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--blue); color: white; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; white-space: nowrap; font-family: 'Syne', sans-serif; }
+  .pricing-card-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 0.5rem; }
+  .pricing-card-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 32px; color: var(--blue); line-height: 1; margin-bottom: 0.25rem; }
+  .pricing-card-price span { font-size: 14px; font-weight: 400; color: var(--text-muted); }
+  .pricing-card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .pricing-features li { font-size: 13px; color: var(--text); display: flex; align-items: flex-start; gap: 8px; }
+  .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .pricing-features li.no::before { content: '✕'; color: var(--text-light); }
+  .pricing-features li.no { color: var(--text-light); }
+  .btn-plan { width: 100%; padding: 10px; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.15s; border: 2px solid var(--blue); background: var(--white); color: var(--blue); }
+  .btn-plan:hover, .btn-plan.primary { background: var(--blue); color: white; }
+  .btn-plan.accent { background: var(--accent); border-color: var(--accent); color: white; }
+
+  /* KEY MODAL */
+  .key-modal { background: var(--white); border-radius: 20px; max-width: 480px; width: 100%; padding: 2rem; box-shadow: 0 24px 80px rgba(0,0,0,0.2); text-align: center; }
+  .key-modal h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; margin-bottom: 0.5rem; }
+  .key-modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 1.5rem; }
+  .key-input-wrap { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .key-input-wrap input { flex: 1; }
+  .key-error { font-size: 13px; color: #DC2626; margin-top: 0.5rem; display: none; }
+  .key-demo { font-size: 12px; color: var(--text-light); margin-top: 1rem; }
+  .key-demo code { background: var(--surface); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Home<span class="logo-dot">copy</span></div>
+  <div class="nav-badge">✦ Propulsé par l'IA</div>
+</nav>
+
+<div class="hero">
+  <h1>Rédigez des annonces<br><span>qui vendent vraiment</span></h1>
+  <p>Remplissez le formulaire, uploadez vos photos, et obtenez en quelques secondes une annonce professionnelle prête à publier.</p>
+</div>
+
+<div class="container">
+
+  <!-- USAGE BANNER -->
+  <div class="usage-banner" id="usage-banner">
+    <div class="usage-info">
+      <div class="usage-icon">⚡</div>
+      <div>
+        <div class="usage-text"><strong id="usage-plan-name">Essai gratuit</strong> — <span id="usage-remaining"></span></div>
+        <div class="usage-bar-wrap"><div class="usage-bar" id="usage-bar"></div></div>
+      </div>
+    </div>
+    <button class="btn-upgrade" id="usage-cta" onclick="showPricing()">Passer à Pro</button>
+  </div>
+  <div class="section-label">
+    <div class="section-num">1</div>
+    <div class="section-title">Type de bien</div>
+  </div>
+  <div class="type-selector">
+    <div class="type-btn active" onclick="selectType('appartement', this)">
+      <span class="type-icon">🏢</span>
+      <div class="type-name">Appartement</div>
+      <div class="type-desc">Studio, T2, T3, loft, duplex...</div>
+    </div>
+    <div class="type-btn" onclick="selectType('maison', this)">
+      <span class="type-icon">🏡</span>
+      <div class="type-name">Maison</div>
+      <div class="type-desc">Maison, villa, pavillon...</div>
+    </div>
+  </div>
+
+  <!-- ===== FORMULAIRE APPARTEMENT ===== -->
+  <div id="form-appartement">
+
+    <!-- 2. INFOS DE BASE -->
+    <div class="section-label"><div class="section-num">2</div><div class="section-title">Informations de base</div></div>
+    <div class="card">
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Sous-type</label>
+          <select id="a-soustype"><option>Appartement</option><option>Studio</option><option>Loft</option><option>Duplex</option><option>Triplex</option><option>Penthouse</option></select></div>
+        <div class="field"><label>Transaction</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip active" onclick="selectChip(this,'a-transaction')">Vente</div>
+            <div class="chip" onclick="selectChip(this,'a-transaction')">Location</div>
+          </div></div>
+        <div class="field"><label>Prix (€)</label><input type="number" id="a-prix" placeholder="320 000" /></div>
+      </div>
+      <div class="grid-4" style="margin-bottom:1rem;">
+        <div class="field"><label>Surface habitable (m²)</label><input type="number" id="a-surface" placeholder="65" /></div>
+        <div class="field"><label>Pièces</label><input type="number" id="a-pieces" placeholder="3" /></div>
+        <div class="field"><label>Chambres</label><input type="number" id="a-chambres" placeholder="2" /></div>
+        <div class="field"><label>Salles de bain</label><input type="number" id="a-sdb" placeholder="1" /></div>
+      </div>
+      <div class="grid-4">
+        <div class="field"><label>Salles d'eau</label><input type="number" id="a-sde" placeholder="0" /></div>
+        <div class="field"><label>WC séparés</label><input type="number" id="a-wc" placeholder="1" /></div>
+        <div class="field"><label>Étage</label><input type="text" id="a-etage" placeholder="ex : 3e / 6" /></div>
+        <div class="field"><label>Ascenseur</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'a-ascenseur')">Oui</div>
+            <div class="chip" onclick="selectChip(this,'a-ascenseur')">Non</div>
+          </div></div>
+      </div>
+    </div>
+
+    <!-- 3. LOCALISATION -->
+    <div class="section-label"><div class="section-num">3</div><div class="section-title">Localisation</div></div>
+    <div class="card">
+      <div class="grid-4" style="margin-bottom:1rem;">
+        <div class="field"><label>Ville</label><input type="text" id="a-ville" placeholder="Paris" oninput="toggleArrondissement('a')" /></div>
+        <div class="field" id="a-arrdt-field" style="display:none;"><label>Arrondissement</label>
+          <select id="a-arrondissement"><option value="">Sélectionner...</option>
+            <option>1er</option><option>2e</option><option>3e</option><option>4e</option><option>5e</option><option>6e</option><option>7e</option><option>8e</option><option>9e</option><option>10e</option><option>11e</option><option>12e</option><option>13e</option><option>14e</option><option>15e</option><option>16e</option><option>17e</option><option>18e</option><option>19e</option><option>20e</option>
+          </select></div>
+        <div class="field"><label>Code postal</label><input type="text" id="a-cp" placeholder="75003" /></div>
+        <div class="field"><label>Rue / Secteur</label><input type="text" id="a-rue" placeholder="ex : Rue de Rivoli" /></div>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Proximité transports</label><input type="text" id="a-transports" placeholder="ex : Métro ligne 1 à 5 min" /></div>
+        <div class="field"><label>Écoles / Commerces</label><input type="text" id="a-commodites" placeholder="ex : école primaire à 200m" /></div>
+        <div class="field"><label>Temps trajet centre-ville</label><input type="text" id="a-trajet" placeholder="ex : 15 min à pied" /></div>
+      </div>
+    </div>
+
+    <!-- 4. DESCRIPTION DÉTAILLÉE -->
+    <div class="section-label"><div class="section-num">4</div><div class="section-title">Description détaillée</div></div>
+    <div class="card">
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Année de construction</label><input type="text" id="a-annee" placeholder="ex : 1970" /></div>
+        <div class="field"><label>Style architectural</label>
+          <select id="a-style"><option value="">Sélectionner...</option><option>Haussmannien</option><option>Ancien</option><option>Moderne</option><option>Contemporain</option><option>Art déco</option><option>Années 70-80</option></select></div>
+        <div class="field"><label>État général</label>
+          <select id="a-etat"><option value="">Sélectionner...</option><option>Neuf / Jamais habité</option><option>Rénové récemment</option><option>Bon état général</option><option>À rafraîchir</option><option>À rénover</option></select></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Travaux réalisés récemment</label><input type="text" id="a-travaux-faits" placeholder="ex : cuisine refaite en 2022, peinture neuve" /></div>
+        <div class="field"><label>Travaux à prévoir</label><input type="text" id="a-travaux-prev" placeholder="ex : salle de bain à rénover" /></div>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Exposition</label>
+          <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'a-exposition')">Sud</div><div class="chip" onclick="selectChip(this,'a-exposition')">Nord</div><div class="chip" onclick="selectChip(this,'a-exposition')">Est</div><div class="chip" onclick="selectChip(this,'a-exposition')">Ouest</div><div class="chip" onclick="selectChip(this,'a-exposition')">Sud-Ouest</div><div class="chip" onclick="selectChip(this,'a-exposition')">Sud-Est</div>
+          </div></div>
+        <div class="field"><label>Luminosité</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'a-luminosite')">Très lumineux</div><div class="chip" onclick="selectChip(this,'a-luminosite')">Lumineux</div><div class="chip" onclick="selectChip(this,'a-luminosite')">Correct</div>
+          </div></div>
+        <div class="field"><label>Vue</label><input type="text" id="a-vue" placeholder="ex : vue dégagée, cour arborée..." /></div>
+      </div>
+    </div>
+
+    <!-- 5. ÉQUIPEMENTS -->
+    <div class="section-label"><div class="section-num">5</div><div class="section-title">Équipements & prestations</div></div>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Chauffage</label>
+          <select id="a-chauffage"><option value="">Sélectionner...</option><option>Individuel gaz</option><option>Collectif gaz</option><option>Électrique</option><option>Pompe à chaleur</option><option>Plancher chauffant</option></select></div>
+        <div class="field"><label>DPE</label>
+          <select id="a-dpe"><option value="">Non renseigné</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Conso. énergétique (kWh/m²/an)</label><input type="number" id="a-conso" placeholder="ex : 180" /></div>
+        <div class="field"><label>Émissions GES (kg CO₂/m²/an)</label><input type="number" id="a-ges" placeholder="ex : 42" /></div>
+        <div class="field"><label>Dépenses énergétiques / an (€)</label><input type="number" id="a-depenses-energie" placeholder="ex : 1 200" /></div>
+      </div>
+      <div class="field"><label>Équipements présents</label>
+        <div class="chips" style="flex-wrap:wrap;">
+          <div class="chip" onclick="toggleChip(this)">Cuisine équipée</div><div class="chip" onclick="toggleChip(this)">Cuisine américaine</div><div class="chip" onclick="toggleChip(this)">Climatisation</div><div class="chip" onclick="toggleChip(this)">Fibre optique</div><div class="chip" onclick="toggleChip(this)">Double vitrage</div><div class="chip" onclick="toggleChip(this)">Domotique</div><div class="chip" onclick="toggleChip(this)">Cheminée</div><div class="chip" onclick="toggleChip(this)">Dressing</div><div class="chip" onclick="toggleChip(this)">Cave</div><div class="chip" onclick="toggleChip(this)">Grenier</div><div class="chip" onclick="toggleChip(this)">Cellier</div><div class="chip" onclick="toggleChip(this)">Buanderie</div><div class="chip" onclick="toggleChip(this)">Parquet</div><div class="chip" onclick="toggleChip(this)">Digicode</div><div class="chip" onclick="toggleChip(this)">Gardien</div><div class="chip" onclick="toggleChip(this)">Interphone vidéo</div>
+        </div></div>
+    </div>
+
+    <!-- 6. EXTÉRIEURS -->
+    <div class="section-label"><div class="section-num">6</div><div class="section-title">Extérieurs & stationnement</div></div>
+    <div class="card">
+      <div class="toggle-row" style="margin-bottom:0.5rem;">
+        <label class="toggle"><input type="checkbox" id="a-has-ext" onchange="toggleCollapsible('a-ext-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Ce bien dispose d'un espace extérieur</span>
+      </div>
+      <div class="collapsible" id="a-ext-details">
+        <div class="grid-3" style="margin-top:0.75rem;">
+          <div class="field"><label>Type d'extérieur</label>
+            <div class="chips" style="flex-wrap:wrap;">
+              <div class="chip" onclick="toggleChip(this)">Balcon</div><div class="chip" onclick="toggleChip(this)">Terrasse</div><div class="chip" onclick="toggleChip(this)">Loggia</div><div class="chip" onclick="toggleChip(this)">Jardin privatif</div><div class="chip" onclick="toggleChip(this)">Véranda</div><div class="chip" onclick="toggleChip(this)">Patio</div>
+            </div></div>
+          <div class="field"><label>Surface extérieure (m²)</label><input type="number" id="a-surface-ext" placeholder="ex : 15" /></div>
+          <div class="field"><label>Orientation extérieur</label>
+            <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+              <div class="chip" onclick="selectChip(this,'a-orient-ext')">Sud</div><div class="chip" onclick="selectChip(this,'a-orient-ext')">Est</div><div class="chip" onclick="selectChip(this,'a-orient-ext')">Ouest</div><div class="chip" onclick="selectChip(this,'a-orient-ext')">Nord</div>
+            </div></div>
+        </div>
+      </div>
+      <div class="toggle-row" style="margin-top:1rem;">
+        <label class="toggle"><input type="checkbox" id="a-has-park" onchange="toggleCollapsible('a-park-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Stationnement inclus</span>
+      </div>
+      <div class="collapsible" id="a-park-details">
+        <div class="grid-2" style="margin-top:0.75rem;">
+          <div class="field"><label>Type</label>
+            <div class="chips" style="flex-wrap:wrap;">
+              <div class="chip" onclick="toggleChip(this)">Parking intérieur</div><div class="chip" onclick="toggleChip(this)">Parking extérieur</div><div class="chip" onclick="toggleChip(this)">Garage individuel</div><div class="chip" onclick="toggleChip(this)">Box fermé</div>
+            </div></div>
+          <div class="field"><label>Nombre de places</label><input type="number" id="a-nb-places" placeholder="1" /></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. COPROPRIÉTÉ -->
+    <div class="section-label"><div class="section-num">7</div><div class="section-title">Copropriété</div></div>
+    <div class="card">
+      <div class="grid-4" style="margin-bottom:1rem;">
+        <div class="field"><label>Charges mensuelles (€)</label><input type="number" id="a-charges" placeholder="ex : 250" /></div>
+        <div class="field"><label>Nombre de lots</label><input type="number" id="a-lots" placeholder="ex : 24" /></div>
+        <div class="field"><label>Fonds de travaux (€)</label><input type="number" id="a-fonds" placeholder="ex : 5 000" /></div>
+        <div class="field"><label>Procédures en cours</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'a-procedures')">Aucune</div><div class="chip" onclick="selectChip(this,'a-procedures')">En cours</div>
+          </div></div>
+      </div>
+    </div>
+
+    <!-- 8. INFOS FINANCIÈRES -->
+    <div class="section-label"><div class="section-num">8</div><div class="section-title">Informations financières</div></div>
+    <div class="card">
+      <div class="grid-3">
+        <div class="field"><label>Taxe foncière / an (€)</label><input type="number" id="a-taxe" placeholder="ex : 1 200" /></div>
+        <div class="field"><label>Charges annuelles totales (€)</label><input type="number" id="a-charges-annuelles" placeholder="ex : 3 000" /></div>
+        <div class="field"><label>Honoraires d'agence (€)</label><input type="number" id="a-honoraires" placeholder="ex : 15 000" /></div>
+      </div>
+    </div>
+
+    <!-- 9. CE QUI FAIT VENDRE -->
+    <div class="section-label"><div class="section-num">9</div><div class="section-title">Ce qui fait vendre ✦</div></div>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Les 3 principaux atouts</label><textarea id="a-atouts" placeholder="ex : luminosité exceptionnelle, emplacement rare, calme absolu..." style="min-height:70px;"></textarea></div>
+        <div class="field"><label>Pourquoi le propriétaire a aimé vivre ici</label><textarea id="a-coup-coeur" placeholder="ex : le marché du dimanche à 100m, la vue sur les toits, la tranquillité..." style="min-height:70px;"></textarea></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Ce qui est rare dans ce secteur</label><input type="text" id="a-rare" placeholder="ex : double garage, grande terrasse plein sud..." /></div>
+        <div class="field"><label>Profil idéal de l'acheteur</label>
+          <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+            <div class="chip" onclick="toggleChip(this)">Famille</div><div class="chip" onclick="toggleChip(this)">Investisseur</div><div class="chip" onclick="toggleChip(this)">Jeune actif</div><div class="chip" onclick="toggleChip(this)">Retraité</div><div class="chip" onclick="toggleChip(this)">Étudiant</div><div class="chip" onclick="toggleChip(this)">Premier achat</div>
+          </div></div>
+      </div>
+      <div class="field"><label>Potentiel d'aménagement</label><input type="text" id="a-potentiel" placeholder="ex : grenier aménageable, possibilité de créer une chambre supplémentaire..." /></div>
+    </div>
+
+  </div><!-- /form-appartement -->
+
+
+  <!-- ===== FORMULAIRE MAISON ===== -->
+  <div id="form-maison" style="display:none;">
+
+    <!-- 2. INFOS DE BASE -->
+    <div class="section-label"><div class="section-num">2</div><div class="section-title">Informations de base</div></div>
+    <div class="card">
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Sous-type</label>
+          <select id="m-soustype"><option>Maison individuelle</option><option>Villa</option><option>Pavillon</option><option>Maison de ville</option><option>Mas / Fermette</option><option>Maison de caractère</option></select></div>
+        <div class="field"><label>Transaction</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip active" onclick="selectChip(this,'m-transaction')">Vente</div>
+            <div class="chip" onclick="selectChip(this,'m-transaction')">Location</div>
+          </div></div>
+        <div class="field"><label>Prix (€)</label><input type="number" id="m-prix" placeholder="450 000" /></div>
+      </div>
+      <div class="grid-4" style="margin-bottom:1rem;">
+        <div class="field"><label>Surface habitable (m²)</label><input type="number" id="m-surface" placeholder="120" /></div>
+        <div class="field"><label>Pièces</label><input type="number" id="m-pieces" placeholder="5" /></div>
+        <div class="field"><label>Chambres</label><input type="number" id="m-chambres" placeholder="3" /></div>
+        <div class="field"><label>Salles de bain</label><input type="number" id="m-sdb" placeholder="2" /></div>
+      </div>
+      <div class="grid-4">
+        <div class="field"><label>Salles d'eau</label><input type="number" id="m-sde" placeholder="0" /></div>
+        <div class="field"><label>WC séparés</label><input type="number" id="m-wc" placeholder="2" /></div>
+        <div class="field"><label>Niveaux</label><input type="text" id="m-niveaux" placeholder="ex : RDC + 1" /></div>
+        <div class="field"><label>Surface terrain (m²)</label><input type="number" id="m-terrain" placeholder="500" /></div>
+      </div>
+    </div>
+
+    <!-- 3. LOCALISATION -->
+    <div class="section-label"><div class="section-num">3</div><div class="section-title">Localisation</div></div>
+    <div class="card">
+      <div class="grid-4" style="margin-bottom:1rem;">
+        <div class="field"><label>Ville</label><input type="text" id="m-ville" placeholder="Bordeaux" oninput="toggleArrondissement('m')" /></div>
+        <div class="field" id="m-arrdt-field" style="display:none;"><label>Arrondissement</label>
+          <select id="m-arrondissement"><option value="">Sélectionner...</option>
+            <option>1er</option><option>2e</option><option>3e</option><option>4e</option><option>5e</option><option>6e</option><option>7e</option><option>8e</option><option>9e</option><option>10e</option><option>11e</option><option>12e</option><option>13e</option><option>14e</option><option>15e</option><option>16e</option><option>17e</option><option>18e</option><option>19e</option><option>20e</option>
+          </select></div>
+        <div class="field"><label>Code postal</label><input type="text" id="m-cp" placeholder="33000" /></div>
+        <div class="field"><label>Rue / Secteur</label><input type="text" id="m-rue" placeholder="ex : Allée des Roses" /></div>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Environnement</label>
+          <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'m-env')">Centre-ville</div><div class="chip" onclick="selectChip(this,'m-env')">Résidentiel calme</div><div class="chip" onclick="selectChip(this,'m-env')">Campagne</div><div class="chip" onclick="selectChip(this,'m-env')">Bord de mer</div><div class="chip" onclick="selectChip(this,'m-env')">Montagne</div>
+          </div></div>
+        <div class="field"><label>Proximité transports / écoles</label><input type="text" id="m-transports" placeholder="ex : gare à 10 min, école à 500m" /></div>
+        <div class="field"><label>Temps trajet centre-ville</label><input type="text" id="m-trajet" placeholder="ex : 20 min en voiture" /></div>
+      </div>
+    </div>
+
+    <!-- 4. DESCRIPTION DÉTAILLÉE -->
+    <div class="section-label"><div class="section-num">4</div><div class="section-title">Description détaillée</div></div>
+    <div class="card">
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Année de construction</label><input type="text" id="m-annee" placeholder="ex : 1985" /></div>
+        <div class="field"><label>Style architectural</label>
+          <select id="m-style"><option value="">Sélectionner...</option><option>Moderne</option><option>Contemporain</option><option>Provençal</option><option>Normand</option><option>Basque</option><option>Ancien</option><option>Années 70-80</option></select></div>
+        <div class="field"><label>État général</label>
+          <select id="m-etat"><option value="">Sélectionner...</option><option>Neuf / Jamais habité</option><option>Rénové récemment</option><option>Bon état général</option><option>À rafraîchir</option><option>À rénover</option></select></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Travaux réalisés récemment</label><input type="text" id="m-travaux-faits" placeholder="ex : toiture refaite en 2021, cuisine neuve" /></div>
+        <div class="field"><label>Travaux à prévoir</label><input type="text" id="m-travaux-prev" placeholder="ex : mise aux normes électricité" /></div>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Exposition principale</label>
+          <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'m-exposition')">Sud</div><div class="chip" onclick="selectChip(this,'m-exposition')">Nord</div><div class="chip" onclick="selectChip(this,'m-exposition')">Est</div><div class="chip" onclick="selectChip(this,'m-exposition')">Ouest</div><div class="chip" onclick="selectChip(this,'m-exposition')">Sud-Ouest</div><div class="chip" onclick="selectChip(this,'m-exposition')">Sud-Est</div>
+          </div></div>
+        <div class="field"><label>Luminosité</label>
+          <div class="chips" style="margin-top:4px;">
+            <div class="chip" onclick="selectChip(this,'m-luminosite')">Très lumineux</div><div class="chip" onclick="selectChip(this,'m-luminosite')">Lumineux</div><div class="chip" onclick="selectChip(this,'m-luminosite')">Correct</div>
+          </div></div>
+        <div class="field"><label>Vue</label><input type="text" id="m-vue" placeholder="ex : vue montagne, dégagée..." /></div>
+      </div>
+    </div>
+
+    <!-- 5. ÉQUIPEMENTS -->
+    <div class="section-label"><div class="section-num">5</div><div class="section-title">Équipements & prestations</div></div>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Chauffage</label>
+          <select id="m-chauffage"><option value="">Sélectionner...</option><option>Individuel gaz</option><option>Pompe à chaleur</option><option>Électrique</option><option>Fioul</option><option>Géothermie</option><option>Bois / Poêle</option><option>Plancher chauffant</option></select></div>
+        <div class="field"><label>DPE</label>
+          <select id="m-dpe"><option value="">Non renseigné</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:1rem;">
+        <div class="field"><label>Conso. énergétique (kWh/m²/an)</label><input type="number" id="m-conso" placeholder="ex : 150" /></div>
+        <div class="field"><label>Émissions GES (kg CO₂/m²/an)</label><input type="number" id="m-ges" placeholder="ex : 35" /></div>
+        <div class="field"><label>Dépenses énergétiques / an (€)</label><input type="number" id="m-depenses-energie" placeholder="ex : 2 000" /></div>
+      </div>
+      <div class="field"><label>Équipements présents</label>
+        <div class="chips" style="flex-wrap:wrap;">
+          <div class="chip" onclick="toggleChip(this)">Cuisine équipée</div><div class="chip" onclick="toggleChip(this)">Cuisine américaine</div><div class="chip" onclick="toggleChip(this)">Climatisation</div><div class="chip" onclick="toggleChip(this)">Fibre optique</div><div class="chip" onclick="toggleChip(this)">Double vitrage</div><div class="chip" onclick="toggleChip(this)">Domotique</div><div class="chip" onclick="toggleChip(this)">Cheminée</div><div class="chip" onclick="toggleChip(this)">Dressing</div><div class="chip" onclick="toggleChip(this)">Cave</div><div class="chip" onclick="toggleChip(this)">Grenier</div><div class="chip" onclick="toggleChip(this)">Cellier</div><div class="chip" onclick="toggleChip(this)">Buanderie</div><div class="chip" onclick="toggleChip(this)">Parquet</div><div class="chip" onclick="toggleChip(this)">Panneaux solaires</div><div class="chip" onclick="toggleChip(this)">Sous-sol</div>
+        </div></div>
+    </div>
+
+    <!-- 6. EXTÉRIEURS -->
+    <div class="section-label"><div class="section-num">6</div><div class="section-title">Extérieurs & dépendances</div></div>
+    <div class="card">
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="m-has-jardin" onchange="toggleCollapsible('m-jardin-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Jardin / terrain aménagé</span>
+      </div>
+      <div class="collapsible" id="m-jardin-details">
+        <div class="grid-3" style="margin-top:0.75rem;">
+          <div class="field"><label>Aménagements</label>
+            <div class="chips" style="flex-wrap:wrap;">
+              <div class="chip" onclick="toggleChip(this)">Pelouse</div><div class="chip" onclick="toggleChip(this)">Arbres fruitiers</div><div class="chip" onclick="toggleChip(this)">Potager</div><div class="chip" onclick="toggleChip(this)">Haie clôturée</div><div class="chip" onclick="toggleChip(this)">Terrasse</div><div class="chip" onclick="toggleChip(this)">Véranda</div><div class="chip" onclick="toggleChip(this)">Pergola</div>
+            </div></div>
+          <div class="field"><label>Surface extérieure (m²)</label><input type="number" id="m-surface-ext" placeholder="ex : 300" /></div>
+          <div class="field"><label>Orientation jardin</label>
+            <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+              <div class="chip" onclick="selectChip(this,'m-orient-ext')">Sud</div><div class="chip" onclick="selectChip(this,'m-orient-ext')">Est</div><div class="chip" onclick="selectChip(this,'m-orient-ext')">Ouest</div><div class="chip" onclick="selectChip(this,'m-orient-ext')">Nord</div>
+            </div></div>
+        </div>
+      </div>
+
+      <div class="toggle-row" style="margin-top:1rem;">
+        <label class="toggle"><input type="checkbox" id="m-has-piscine" onchange="toggleCollapsible('m-piscine-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Piscine</span>
+      </div>
+      <div class="collapsible" id="m-piscine-details">
+        <div class="chips" style="flex-wrap:wrap; margin-top:0.75rem;">
+          <div class="chip" onclick="selectChip(this,'m-piscine-type')">Enterrée</div><div class="chip" onclick="selectChip(this,'m-piscine-type')">Hors-sol</div><div class="chip" onclick="selectChip(this,'m-piscine-type')">Chauffée</div><div class="chip" onclick="selectChip(this,'m-piscine-type')">Spa / Jacuzzi</div>
+        </div>
+      </div>
+
+      <div class="toggle-row" style="margin-top:1rem;">
+        <label class="toggle"><input type="checkbox" id="m-has-garage" onchange="toggleCollapsible('m-garage-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Garage / stationnement</span>
+      </div>
+      <div class="collapsible" id="m-garage-details">
+        <div class="grid-2" style="margin-top:0.75rem;">
+          <div class="field"><label>Type</label>
+            <div class="chips" style="flex-wrap:wrap;">
+              <div class="chip" onclick="toggleChip(this)">Garage simple</div><div class="chip" onclick="toggleChip(this)">Double garage</div><div class="chip" onclick="toggleChip(this)">Carport</div><div class="chip" onclick="toggleChip(this)">Parking extérieur</div><div class="chip" onclick="toggleChip(this)">Borne de recharge</div>
+            </div></div>
+          <div class="field"><label>Nombre de places</label><input type="number" id="m-nb-places" placeholder="2" /></div>
+        </div>
+      </div>
+
+      <div class="toggle-row" style="margin-top:1rem;">
+        <label class="toggle"><input type="checkbox" id="m-has-dependance" onchange="toggleCollapsible('m-dep-details', this.checked)" /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Dépendances</span>
+      </div>
+      <div class="collapsible" id="m-dep-details">
+        <div class="chips" style="flex-wrap:wrap; margin-top:0.75rem;">
+          <div class="chip" onclick="toggleChip(this)">Gîte / Studio indépendant</div><div class="chip" onclick="toggleChip(this)">Atelier</div><div class="chip" onclick="toggleChip(this)">Grange</div><div class="chip" onclick="toggleChip(this)">Cave à vin</div><div class="chip" onclick="toggleChip(this)">Abri de jardin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. INFOS FINANCIÈRES -->
+    <div class="section-label"><div class="section-num">7</div><div class="section-title">Informations financières</div></div>
+    <div class="card">
+      <div class="grid-3">
+        <div class="field"><label>Taxe foncière / an (€)</label><input type="number" id="m-taxe" placeholder="ex : 1 800" /></div>
+        <div class="field"><label>Charges annuelles (€)</label><input type="number" id="m-charges-annuelles" placeholder="ex : 2 000" /></div>
+        <div class="field"><label>Honoraires d'agence (€)</label><input type="number" id="m-honoraires" placeholder="ex : 20 000" /></div>
+      </div>
+    </div>
+
+    <!-- 8. CE QUI FAIT VENDRE -->
+    <div class="section-label"><div class="section-num">8</div><div class="section-title">Ce qui fait vendre ✦</div></div>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Les 3 principaux atouts</label><textarea id="m-atouts" placeholder="ex : grand terrain plat, calme, vue dégagée..." style="min-height:70px;"></textarea></div>
+        <div class="field"><label>Pourquoi le propriétaire a aimé vivre ici</label><textarea id="m-coup-coeur" placeholder="ex : la quiétude, le jardin idéal pour les enfants, les voisins discrets..." style="min-height:70px;"></textarea></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="field"><label>Ce qui est rare dans ce secteur</label><input type="text" id="m-rare" placeholder="ex : piscine + grand terrain dans ce village" /></div>
+        <div class="field"><label>Profil idéal de l'acheteur</label>
+          <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+            <div class="chip" onclick="toggleChip(this)">Famille</div><div class="chip" onclick="toggleChip(this)">Investisseur</div><div class="chip" onclick="toggleChip(this)">Retraité</div><div class="chip" onclick="toggleChip(this)">Télétravailleurs</div><div class="chip" onclick="toggleChip(this)">Premier achat</div>
+          </div></div>
+      </div>
+      <div class="field"><label>Potentiel d'aménagement</label><input type="text" id="m-potentiel" placeholder="ex : grange transformable en studio, possibilité piscine..." /></div>
+    </div>
+
+  </div><!-- /form-maison -->
+
+  <!-- BLOC 10 : PHOTOS (commun) -->
+  <div class="section-label">
+    <div class="section-num">10</div>
+    <div class="section-title">Photos du bien</div>
+  </div>
+  <div class="card">
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('photo-input').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+      <div class="upload-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
+      </div>
+      <p><span>Cliquez pour uploader</span> ou glissez vos photos ici</p>
+      <p style="font-size:12px; margin-top:4px; color:var(--text-light);">JPG, PNG — jusqu'à 15 photos · L'IA sélectionnera les meilleures</p>
+    </div>
+    <input type="file" id="photo-input" multiple accept="image/*" style="display:none" onchange="handlePhotos(event)" />
+    <div class="photo-grid" id="photo-grid"></div>
+    <div class="ai-analysis-bar" id="ai-analysis-bar">
+      ✦ <strong>Analyse IA :</strong> <span id="ai-analysis-text"></span>
+    </div>
+  </div>
+
+  <!-- BLOC 11 : PARAMETRES ANNONCE (commun) -->
+  <div class="section-label">
+    <div class="section-num">11</div>
+    <div class="section-title">Paramètres de l'annonce</div>
+  </div>
+  <div class="card">
+    <div class="grid-2" style="margin-bottom:1.25rem;">
+      <div class="field">
+        <label>Ton de l'annonce</label>
+        <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+          <div class="chip active" onclick="selectChip(this,'ton')">Professionnel</div>
+          <div class="chip" onclick="selectChip(this,'ton')">Luxe & Prestige</div>
+          <div class="chip" onclick="selectChip(this,'ton')">Chaleureux</div>
+          <div class="chip" onclick="selectChip(this,'ton')">Simple & direct</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Longueur</label>
+        <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+          <div class="chip" onclick="selectChip(this,'longueur')">Courte</div>
+          <div class="chip active" onclick="selectChip(this,'longueur')">Standard</div>
+          <div class="chip" onclick="selectChip(this,'longueur')">Détaillée</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:1.25rem;">
+      <div class="field">
+        <label>Plateforme cible</label>
+        <div class="chips" style="flex-wrap:wrap; margin-top:4px;">
+          <div class="chip active" onclick="selectChip(this,'plateforme')">SeLoger</div>
+          <div class="chip" onclick="selectChip(this,'plateforme')">Leboncoin</div>
+          <div class="chip" onclick="selectChip(this,'plateforme')">Site agence</div>
+          <div class="chip" onclick="selectChip(this,'plateforme')">Toutes plateformes</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Langue</label>
+        <div class="chips" style="margin-top:4px;">
+          <div class="chip active" onclick="selectChip(this,'langue')">Français</div>
+          <div class="chip" onclick="selectChip(this,'langue')">Anglais</div>
+          <div class="chip" onclick="selectChip(this,'langue')">Bilingue</div>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:1.25rem;">
+      <label>Points forts à mettre en avant (optionnel)</label>
+      <textarea id="points-forts" placeholder="ex : vue exceptionnelle, rénovation complète 2023, quartier très prisé..." style="min-height:70px;"></textarea>
+    </div>
+    <div class="field">
+      <label>Consignes spécifiques pour l'IA <span style="color:var(--text-light); font-size:11px; text-transform:none;">(100 mots max)</span></label>
+      <textarea id="consignes-ia" placeholder="Décrivez vos attentes : ex. insister sur la luminosité et le calme, éviter de mentionner l'étage, cibler des jeunes actifs, mettre en avant le potentiel locatif..." style="min-height:90px;" oninput="countWords(this, 'consignes-count', 100)"></textarea>
+      <div class="word-count" id="consignes-count">0 / 100 mots</div>
+    </div>
+  </div>
+
+  <!-- BLOC 12 : FORMAT DE SORTIE (commun) -->
+  <div class="section-label">
+    <div class="section-num">12</div>
+    <div class="section-title">Format de sortie</div>
+  </div>
+  <div class="card">
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:1rem;">Choisissez le(s) format(s) à générer — vous pouvez en sélectionner plusieurs</p>
+    <div class="format-cards">
+      <div class="format-card selected" onclick="toggleFormat(this,'A')">
+        <span class="format-icon">📝</span>
+        <div class="format-name">Format A — Annonce</div>
+        <div class="format-desc">Titre accrocheur + texte complet prêt à copier-coller sur SeLoger, Leboncoin...</div>
+      </div>
+      <div class="format-card selected" onclick="toggleFormat(this,'B')">
+        <span class="format-icon">📋</span>
+        <div class="format-name">Format B — Fiche</div>
+        <div class="format-desc">Annonce + fiche structurée avec toutes les caractéristiques clés du bien.</div>
+      </div>
+      <div class="format-card selected" onclick="toggleFormat(this,'C')">
+        <span class="format-icon">📱</span>
+        <div class="format-name">Format C — Pack complet</div>
+        <div class="format-desc">Annonce + fiche + versions courtes optimisées pour LinkedIn et Instagram.</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-generate" onclick="generateAll()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6L16.9 18 12 14.5 7.1 18l1.8-5.6L4 8.8h6.1z"/></svg>
+    Générer mes annonces
+  </button>
+
+  <div class="loading-state" id="loading-state">
+    <div class="loader"></div>
+    <p>L'IA analyse vos données et rédige vos annonces...</p>
+    <p class="loading-step" id="loading-step">Lecture des informations du bien</p>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div class="results-section" id="results-section">
+    <div class="results-header">
+      <div class="results-title">Vos annonces sont prêtes ✦</div>
+      <div class="success-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Générées avec succès
+      </div>
+    </div>
+    <div class="result-tabs" id="result-tabs"></div>
+    <div id="result-panels"></div>
+    <div style="margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--border); display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn-action primary" onclick="exportAllPDF()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Exporter tout en PDF
+      </button>
+      <button class="btn-action" onclick="regenerate()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Régénérer
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<footer>Propulsé par <span>Homecopy</span> — Annonces immobilières par intelligence artificielle</footer>
+
+<!-- PRICING OVERLAY -->
+<div class="overlay" id="pricing-overlay">
+  <div class="pricing-modal">
+    <div class="pricing-modal-header">
+      <h2>Choisissez votre formule</h2>
+      <p>Commencez gratuitement, évoluez selon vos besoins</p>
+      <div class="guarantee-badge">🛡️ Satisfait ou remboursé — 14 jours sans conditions</div>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- ESSENTIEL -->
+      <div class="pricing-card">
+        <div class="pricing-card-name">Essentiel</div>
+        <div class="pricing-card-price">19€ <span>/ mois</span></div>
+        <div class="pricing-card-desc">Pour les agents qui débutent ou ont peu de biens à publier.</div>
+        <ul class="pricing-features">
+          <li>15 annonces par mois</li>
+          <li>Format A — Annonce complète</li>
+          <li>Format B — Fiche structurée</li>
+          <li>Analyse vendeur incluse</li>
+          <li>Support email (réponse 48h)</li>
+          <li class="no">Format C — Réseaux sociaux</li>
+          <li class="no">Sélection IA des photos</li>
+          <li class="no">Analyse vendeur avancée</li>
+        </ul>
+        <button class="btn-plan" onclick="selectPlan('essentiel')">Choisir Essentiel</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="pricing-card popular">
+        <div class="popular-badge">⭐ Le plus populaire</div>
+        <div class="pricing-card-name">Pro</div>
+        <div class="pricing-card-price">39€ <span>/ mois</span></div>
+        <div class="pricing-card-desc">Le choix des agents actifs qui veulent des annonces qui se démarquent.</div>
+        <ul class="pricing-features">
+          <li>50 annonces par mois</li>
+          <li>Format A — Annonce complète</li>
+          <li>Format B — Fiche structurée</li>
+          <li>Format C — Réseaux sociaux</li>
+          <li>Analyse vendeur incluse</li>
+          <li>Sélection IA des photos</li>
+          <li>Support prioritaire (réponse 24h)</li>
+          <li class="no">Analyse vendeur avancée</li>
+        </ul>
+        <button class="btn-plan primary" onclick="selectPlan('pro')">Choisir Pro</button>
+      </div>
+
+      <!-- AGENCE -->
+      <div class="pricing-card">
+        <div class="pricing-card-name">Agence</div>
+        <div class="pricing-card-price">70€ <span>/ mois</span></div>
+        <div class="pricing-card-desc">Pour les agents très actifs ou les petites agences avec plusieurs collaborateurs.</div>
+        <ul class="pricing-features">
+          <li>Annonces illimitées</li>
+          <li>Tous les formats (A, B, C)</li>
+          <li>Analyse vendeur avancée</li>
+          <li>Sélection IA des photos</li>
+          <li>Jusqu'à 3 utilisateurs</li>
+          <li>Support dédié (réponse 12h)</li>
+          <li>Analyse par quartier & rue</li>
+          <li>Rentabilité locative & saisonnalité</li>
+        </ul>
+        <button class="btn-plan accent" onclick="selectPlan('agence')">Choisir Agence</button>
+      </div>
+    </div>
+
+    <div style="text-align:center; font-size:13px; color:var(--text-muted);">
+      Déjà abonné ? <span style="color:var(--blue); cursor:pointer; font-weight:500;" onclick="showKeyModal()">Entrer ma clé d'accès</span>
+      &nbsp;·&nbsp;
+      <span style="color:var(--text-light); cursor:pointer;" onclick="closePricing()">Continuer sans abonnement</span>
+    </div>
+  </div>
+</div>
+
+<!-- KEY MODAL -->
+<div class="overlay" id="key-overlay">
+  <div class="key-modal">
+    <div style="font-size:40px; margin-bottom:1rem;">🔑</div>
+    <h3>Entrez votre clé d'accès</h3>
+    <p>Vous avez reçu votre clé par email après votre abonnement. Elle ressemble à <code>HC-XXXX-XXXX-XXXX</code>.</p>
+    <div class="key-input-wrap">
+      <input type="text" id="key-input" placeholder="HC-XXXX-XXXX-XXXX" style="text-transform:uppercase; letter-spacing:1px;" oninput="this.value=this.value.toUpperCase()" />
+      <button class="btn-upgrade" onclick="validateKey()">Valider</button>
+    </div>
+    <div class="key-error" id="key-error">Clé invalide. Vérifiez votre email ou contactez le support.</div>
+    <div class="key-demo">
+      Pour tester : <code>HC-ESSE-NTIE-L001</code> (Essentiel) · <code>HC-PRO0-0000-0001</code> (Pro) · <code>HC-AGEN-CE00-0001</code> (Agence)
+    </div>
+    <div style="margin-top:1rem;">
+      <span style="font-size:13px; color:var(--text-light); cursor:pointer;" onclick="closeKeyModal()">← Retour aux offres</span>
+    </div>
+  </div>
+</div>
+
+<!-- LIMIT REACHED MODAL -->
+<div class="overlay" id="limit-overlay">
+  <div class="key-modal">
+    <div style="font-size:40px; margin-bottom:1rem;">⚡</div>
+    <h3 id="limit-title">Limite atteinte</h3>
+    <p id="limit-message" style="margin-bottom:1.5rem;"></p>
+    <button class="btn-upgrade" style="width:100%; padding:12px;" onclick="closeLimitModal(); showPricing()">Voir les offres</button>
+    <div style="margin-top:1rem;">
+      <span style="font-size:13px; color:var(--text-light); cursor:pointer;" onclick="closeLimitModal()">Continuer sans abonnement</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentType = 'appartement';
+let photos = [];
+let selectedPhotosData = [];
+let generatedResults = {};
+const selectedFormats = new Set(['A','B','C']);
+
+// TYPE SWITCH
+function selectType(type, el) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('form-appartement').style.display = type === 'appartement' ? 'block' : 'none';
+  document.getElementById('form-maison').style.display = type === 'maison' ? 'block' : 'none';
+}
+
+// CHIPS
+function selectChip(el, group) {
+  const parent = el.closest('.chips');
+  parent.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function toggleChip(el) { el.classList.toggle('active'); }
+
+// COLLAPSIBLE TOGGLE
+function toggleCollapsible(id, open) {
+  const el = document.getElementById(id);
+  if (open) el.classList.add('open');
+  else el.classList.remove('open');
+}
+
+// ARRONDISSEMENT (Paris only)
+function toggleArrondissement(prefix) {
+  const ville = document.getElementById(prefix + '-ville').value.trim().toLowerCase();
+  const field = document.getElementById(prefix + '-arrdt-field');
+  field.style.display = ville === 'paris' ? 'flex' : 'none';
+}
+
+// FORMAT TOGGLE
+function toggleFormat(el, id) {
+  el.classList.toggle('selected');
+  if (selectedFormats.has(id)) selectedFormats.delete(id);
+  else selectedFormats.add(id);
+}
+
+// WORD COUNT
+function countWords(el, countId, max) {
+  const words = el.value.trim() === '' ? 0 : el.value.trim().split(/\s+/).length;
+  const counter = document.getElementById(countId);
+  counter.textContent = words + ' / ' + max + ' mots';
+  counter.classList.toggle('over', words > max);
+  if (words > max) {
+    const trimmed = el.value.trim().split(/\s+/).slice(0, max).join(' ');
+    el.value = trimmed;
+    counter.textContent = max + ' / ' + max + ' mots';
+  }
+}
+
+// PHOTOS
+function handlePhotos(e) { addPhotos(Array.from(e.target.files)); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  addPhotos(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+}
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('upload-zone').classList.remove('drag-over'); }
+
+function addPhotos(files) {
+  const remaining = 15 - photos.length;
+  files.slice(0, remaining).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => { photos.push({ file, dataUrl: e.target.result }); renderPhotos(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removePhoto(i) { photos.splice(i, 1); renderPhotos(); }
+
+function renderPhotos(selected = []) {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = photos.map((p, i) => `
+    <div class="photo-thumb ${selected.includes(i) ? 'selected-by-ai' : ''}">
+      <img src="${p.dataUrl}" alt="Photo ${i+1}" />
+      <button onclick="removePhoto(${i})">✕</button>
+    </div>`).join('');
+}
+
+// COLLECT DATA
+function getActiveChipsText(selector) {
+  return Array.from(document.querySelectorAll(selector + ' .chip.active')).map(c => c.textContent.trim()).join(', ');
+}
+function getChipActive(group) {
+  const el = document.querySelector(`.chip.active[onclick*="'${group}'"]`);
+  return el ? el.textContent.trim() : '';
+}
+
+function collectData() {
+  const p = currentType === 'appartement' ? 'a' : 'm';
+  const d = { type: currentType };
+
+  if (currentType === 'appartement') {
+    d.soustype = document.getElementById('a-soustype').value;
+    d.transaction = getChipActive('a-transaction');
+    d.prix = document.getElementById('a-prix').value;
+    d.surface = document.getElementById('a-surface').value;
+    d.pieces = document.getElementById('a-pieces').value;
+    d.chambres = document.getElementById('a-chambres').value;
+    d.sdb = document.getElementById('a-sdb').value;
+    d.sde = document.getElementById('a-sde').value;
+    d.wc = document.getElementById('a-wc').value;
+    d.etage = document.getElementById('a-etage').value;
+    d.ascenseur = getChipActive('a-ascenseur');
+    d.ville = document.getElementById('a-ville').value;
+    d.arrondissement = document.getElementById('a-arrondissement') ? document.getElementById('a-arrondissement').value : '';
+    d.cp = document.getElementById('a-cp').value;
+    d.rue = document.getElementById('a-rue').value;
+    d.transports = document.getElementById('a-transports').value;
+    d.commodites = document.getElementById('a-commodites').value;
+    d.trajet = document.getElementById('a-trajet').value;
+    d.annee = document.getElementById('a-annee').value;
+    d.style = document.getElementById('a-style').value;
+    d.etat = document.getElementById('a-etat').value;
+    d.travauxFaits = document.getElementById('a-travaux-faits').value;
+    d.travauxPrev = document.getElementById('a-travaux-prev').value;
+    d.exposition = getChipActive('a-exposition');
+    d.luminosite = getChipActive('a-luminosite');
+    d.vue = document.getElementById('a-vue').value;
+    d.chauffage = document.getElementById('a-chauffage').value;
+    d.dpe = document.getElementById('a-dpe').value;
+    d.conso = document.getElementById('a-conso').value;
+    d.ges = document.getElementById('a-ges').value;
+    d.depensesEnergie = document.getElementById('a-depenses-energie').value;
+    d.charges = document.getElementById('a-charges').value;
+    d.lots = document.getElementById('a-lots').value;
+    d.fonds = document.getElementById('a-fonds').value;
+    d.procedures = getChipActive('a-procedures');
+    d.taxe = document.getElementById('a-taxe').value;
+    d.chargesAnnuelles = document.getElementById('a-charges-annuelles').value;
+    d.honoraires = document.getElementById('a-honoraires').value;
+    d.atouts = document.getElementById('a-atouts').value;
+    d.coupCoeur = document.getElementById('a-coup-coeur').value;
+    d.rare = document.getElementById('a-rare').value;
+    d.potentiel = document.getElementById('a-potentiel').value;
+    d.hasExt = document.getElementById('a-has-ext').checked;
+    d.hasPark = document.getElementById('a-has-park').checked;
+  } else {
+    d.soustype = document.getElementById('m-soustype').value;
+    d.transaction = getChipActive('m-transaction');
+    d.prix = document.getElementById('m-prix').value;
+    d.surface = document.getElementById('m-surface').value;
+    d.pieces = document.getElementById('m-pieces').value;
+    d.chambres = document.getElementById('m-chambres').value;
+    d.sdb = document.getElementById('m-sdb').value;
+    d.sde = document.getElementById('m-sde').value;
+    d.wc = document.getElementById('m-wc').value;
+    d.niveaux = document.getElementById('m-niveaux').value;
+    d.terrain = document.getElementById('m-terrain').value;
+    d.ville = document.getElementById('m-ville').value;
+    d.arrondissement = document.getElementById('m-arrondissement') ? document.getElementById('m-arrondissement').value : '';
+    d.cp = document.getElementById('m-cp').value;
+    d.rue = document.getElementById('m-rue').value;
+    d.env = getChipActive('m-env');
+    d.transports = document.getElementById('m-transports').value;
+    d.trajet = document.getElementById('m-trajet').value;
+    d.annee = document.getElementById('m-annee').value;
+    d.style = document.getElementById('m-style').value;
+    d.etat = document.getElementById('m-etat').value;
+    d.travauxFaits = document.getElementById('m-travaux-faits').value;
+    d.travauxPrev = document.getElementById('m-travaux-prev').value;
+    d.exposition = getChipActive('m-exposition');
+    d.luminosite = getChipActive('m-luminosite');
+    d.vue = document.getElementById('m-vue').value;
+    d.chauffage = document.getElementById('m-chauffage').value;
+    d.dpe = document.getElementById('m-dpe').value;
+    d.conso = document.getElementById('m-conso').value;
+    d.ges = document.getElementById('m-ges').value;
+    d.depensesEnergie = document.getElementById('m-depenses-energie').value;
+    d.taxe = document.getElementById('m-taxe').value;
+    d.chargesAnnuelles = document.getElementById('m-charges-annuelles').value;
+    d.honoraires = document.getElementById('m-honoraires').value;
+    d.atouts = document.getElementById('m-atouts').value;
+    d.coupCoeur = document.getElementById('m-coup-coeur').value;
+    d.rare = document.getElementById('m-rare').value;
+    d.potentiel = document.getElementById('m-potentiel').value;
+    d.hasJardin = document.getElementById('m-has-jardin').checked;
+    d.hasPiscine = document.getElementById('m-has-piscine').checked;
+    d.hasGarage = document.getElementById('m-has-garage').checked;
+    d.hasDep = document.getElementById('m-has-dependance').checked;
+  }
+
+  d.ton = getChipActive('ton');
+  d.longueur = getChipActive('longueur');
+  d.plateforme = getChipActive('plateforme');
+  d.langue = getChipActive('langue');
+  d.pointsForts = document.getElementById('points-forts').value;
+  d.consignes = document.getElementById('consignes-ia').value;
+  d.photoCount = photos.length;
+  d.photoAnalysis = selectedPhotosData.length > 0 ? selectedPhotosData.map(p => p.description).join(' | ') : '';
+  return d;
+}
+
+// AI PHOTO SELECTION
+async function analyzePhotos() {
+  if (photos.length === 0) return;
+  document.getElementById('ai-analysis-bar').style.display = 'block';
+  document.getElementById('ai-analysis-text').textContent = 'Analyse en cours...';
+
+  try {
+    const photoContents = photos.slice(0, 15).map((p, i) => ({
+      type: 'image',
+      source: { type: 'base64', media_type: p.file.type || 'image/jpeg', data: p.dataUrl.split(',')[1] }
+    }));
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            ...photoContents,
+            { type: 'text', text: `Tu es un expert en photographie immobilière. Analyse ces ${photos.length} photos d'un bien immobilier. Sélectionne les 5 meilleures selon ces critères : luminosité, composition, mise en valeur des espaces, qualité générale. Réponds UNIQUEMENT en JSON valide (sans markdown) : {"selected": [indices des 5 meilleures photos, 0-indexé], "descriptions": ["description courte de chaque photo sélectionnée"], "summary": "résumé en 1 phrase de ce que montrent les meilleures photos"}` }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(b => b.text || '').join('').trim();
+    const parsed = JSON.parse(text);
+
+    selectedPhotosData = parsed.selected.map((idx, i) => ({
+      index: idx,
+      description: parsed.descriptions[i] || ''
+    }));
+
+    renderPhotos(parsed.selected);
+    document.getElementById('ai-analysis-text').textContent =
+      `${parsed.selected.length} photos sélectionnées · ${parsed.summary}`;
+  } catch(e) {
+    document.getElementById('ai-analysis-text').textContent = 'Analyse terminée — toutes les photos seront prises en compte.';
+  }
+}
+
+// BUILD PROMPT
+function buildPrompt(data, format) {
+  const longueurMap = { 'Courte': '60 à 90 mots', 'Standard': '100 à 150 mots', 'Détaillée': '180 à 250 mots' };
+  const longueur = longueurMap[data.longueur] || '100 à 150 mots';
+
+  let loc = data.ville || '';
+  if (data.arrondissement) loc += ` ${data.arrondissement} arrondissement`;
+  if (data.cp) loc += ` (${data.cp})`;
+  if (data.rue) loc += `, ${data.rue}`;
+
+  let base = `Tu es un expert en copywriting immobilier.
+
+TYPE : ${data.soustype || data.type} — ${data.transaction || 'Vente'}
+SURFACE : ${data.surface || '?'} m²${data.terrain ? ' | TERRAIN : ' + data.terrain + ' m²' : ''}
+PIÈCES : ${data.pieces || '?'} | CHAMBRES : ${data.chambres || '?'} | SDB : ${data.sdb || '?'} | SDE : ${data.sde || '?'} | WC : ${data.wc || '?'}
+PRIX : ${data.prix ? parseInt(data.prix).toLocaleString('fr-FR') + ' €' : '?'}${data.honoraires ? ' | HONORAIRES : ' + parseInt(data.honoraires).toLocaleString('fr-FR') + ' €' : ''}`;
+
+  if (data.type === 'appartement') {
+    base += `\nÉTAGE : ${data.etage || '?'} | ASCENSEUR : ${data.ascenseur || '?'}`;
+    base += `\nCHARGES COPRO : ${data.charges ? data.charges + ' €/mois' : '?'} | LOTS : ${data.lots || '?'} | PROCÉDURES : ${data.procedures || 'aucune'}`;
+  } else {
+    base += `\nNIVEAUX : ${data.niveaux || '?'} | ENVIRONNEMENT : ${data.env || '?'}`;
+  }
+
+  base += `
+LOCALISATION : ${loc || '?'} | TRANSPORTS : ${data.transports || '?'} | TRAJET : ${data.trajet || '?'}
+ANNÉE : ${data.annee || '?'} | STYLE : ${data.style || '?'} | ÉTAT : ${data.etat || '?'}
+TRAVAUX FAITS : ${data.travauxFaits || 'aucun'} | TRAVAUX PRÉVUS : ${data.travauxPrev || 'aucun'}
+DPE : ${data.dpe || '?'} | CHAUFFAGE : ${data.chauffage || '?'} | EXPOSITION : ${data.exposition || '?'} | LUMINOSITÉ : ${data.luminosite || '?'} | VUE : ${data.vue || '?'}
+ÉNERGIE : ${data.conso ? data.conso + ' kWh/m²/an' : '?'} | GES : ${data.ges ? data.ges + ' kg CO₂/m²/an' : '?'} | DÉPENSES : ${data.depensesEnergie ? data.depensesEnergie + ' €/an' : '?'}
+TAXE FONCIÈRE : ${data.taxe ? data.taxe + ' €/an' : '?'} | CHARGES ANNUELLES : ${data.chargesAnnuelles ? data.chargesAnnuelles + ' €/an' : '?'}
+ATOUTS : ${data.atouts || '?'} | COUP DE CŒUR : ${data.coupCoeur || '?'}
+ÉLÉMENT RARE : ${data.rare || '?'} | POTENTIEL : ${data.potentiel || '?'}`;
+
+  if (data.photoAnalysis) base += `\nPHOTOS ANALYSÉES : ${data.photoAnalysis}`;
+
+  base += `
+TON : ${data.ton || 'Professionnel'} | PLATEFORME : ${data.plateforme || 'SeLoger'} | LANGUE : ${data.langue || 'Français'}
+POINTS FORTS : ${data.pointsForts || '?'}`;
+
+  if (data.consignes) base += `\nCONSIGNES : ${data.consignes}`;
+
+  if (format === 'A') return base + `\n\nRédige UNIQUEMENT une annonce (${longueur}) : titre accrocheur sur la 1ère ligne, puis corps. Aucun commentaire.`;
+  if (format === 'B') return base + `\n\nRédige en deux parties :\nPARTIE 1 — ANNONCE (${longueur}) :\n[titre]\n[corps]\n\nPARTIE 2 — FICHE STRUCTURÉE :\nCaractéristiques en bullet points : Bien, Localisation, Prestations, Financier.`;
+  if (format === 'C') return base + `\n\nRédige en trois parties :\nPARTIE 1 — ANNONCE (${longueur}) :\n[titre]\n[corps]\n\nPARTIE 2 — FICHE STRUCTURÉE :\nCaractéristiques en bullet points.\n\nPARTIE 3 — RÉSEAUX SOCIAUX :\nLINKEDIN (80-100 mots, professionnel, 3 hashtags) :\n[texte]\n\nINSTAGRAM (40-60 mots, accrocheur, émojis, 5 hashtags) :\n[texte]`;
+}
+
+function buildVendorPrompt(data) {
+  const prixFmt = data.prix ? parseInt(data.prix).toLocaleString('fr-FR') + ' €' : 'non communiqué';
+  const prixM2 = (data.prix && data.surface) ? Math.round(parseInt(data.prix) / parseInt(data.surface)) : null;
+  let loc = data.ville || 'France';
+  if (data.arrondissement) loc += ` ${data.arrondissement} arrondissement`;
+
+  return `Tu es un expert en analyse du marché immobilier français avec une connaissance approfondie des prix par ville et quartier.
+
+BIEN À ANALYSER :
+- Type : ${data.soustype || data.type} — ${data.transaction || 'Vente'}
+- Localisation : ${loc}
+- Surface : ${data.surface || '?'} m²${data.terrain ? ' | Terrain : ' + data.terrain + ' m²' : ''}
+- Pièces : ${data.pieces || '?'} | État : ${data.etat || 'non précisé'} | DPE : ${data.dpe || 'non renseigné'}
+- Prix demandé : ${prixFmt}${prixM2 ? ' (soit ' + prixM2.toLocaleString('fr-FR') + ' €/m²)' : ''}
+- Caractéristiques clés : étage ${data.etage || '?'}, ascenseur ${data.ascenseur || '?'}, exposition ${data.exposition || '?'}
+
+Réponds UNIQUEMENT en JSON valide (sans markdown, sans backticks) avec exactement cette structure :
+{
+  "prix_m2_moyen": "fourchette du prix moyen au m² dans ce secteur, ex: 8 500 € à 10 200 €/m²",
+  "prix_m2_explication": "2-3 phrases expliquant les facteurs qui influencent ce prix dans ce secteur",
+  "fourchette_similaires": "fourchette de prix pour des biens similaires dans ce secteur, ex: 280 000 € à 360 000 €",
+  "fourchette_explication": "2-3 phrases sur les biens comparables actuellement sur le marché",
+  "delai_vente": "délai moyen estimé, ex: 45 à 75 jours",
+  "delai_explication": "2-3 phrases sur les conditions actuelles du marché local",
+  "positionnement": "SOUS-ÉVALUÉ ou DANS LA NORME ou PREMIUM",
+  "positionnement_explication": "2-3 phrases justifiant ce positionnement par rapport au marché",
+  "conseils": "5 conseils numérotés et concrets pour optimiser le prix ou accélérer la vente"
+}`;
+}
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(b => b.text || '').join('').trim();
+}
+
+const loadingSteps = [
+  'Lecture des informations du bien...','Analyse des caractéristiques...','Sélection des meilleures photos...','Rédaction de l\'annonce...','Optimisation pour la plateforme...','Analyse du marché local...','Mise en forme finale...'
+];
+let loadingInterval;
+
+function startLoading() {
+  let i = 0;
+  const el = document.getElementById('loading-step');
+  el.textContent = loadingSteps[0];
+  loadingInterval = setInterval(() => { i = (i+1)%loadingSteps.length; el.textContent = loadingSteps[i]; }, 1800);
+}
+function stopLoading() { clearInterval(loadingInterval); }
+
+async function generateAll() {
+  if (selectedFormats.size === 0) { showError('Sélectionnez au moins un format.'); return; }
+  const data = collectData();
+  if (!data.surface && !data.ville) { showError('Veuillez remplir au moins la surface et la ville.'); return; }
+
+  document.querySelector('.btn-generate').disabled = true;
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('loading-state').style.display = 'block';
+  startLoading();
+
+  try {
+    if (photos.length > 0 && selectedPhotosData.length === 0) await analyzePhotos();
+    const updatedData = collectData();
+    generatedResults = {};
+    for (const fmt of Array.from(selectedFormats)) {
+      generatedResults[fmt] = await callClaude(buildPrompt(updatedData, fmt));
+    }
+    // Vendor market analysis
+    try {
+      const vendorRaw = await callClaude(buildVendorPrompt(updatedData));
+      const clean = vendorRaw.replace(/```json|```/g, '').trim();
+      generatedResults['VENDOR'] = JSON.parse(clean);
+    } catch(e) {
+      generatedResults['VENDOR'] = null;
+    }
+    stopLoading();
+    document.getElementById('loading-state').style.display = 'none';
+    renderResults(updatedData);
+  } catch(e) {
+    stopLoading();
+    document.getElementById('loading-state').style.display = 'none';
+    showError('Une erreur est survenue. Réessayez dans quelques instants.');
+  }
+  document.querySelector('.btn-generate').disabled = false;
+}
+
+function renderResults(data) {
+  const section = document.getElementById('results-section');
+  const tabs = document.getElementById('result-tabs');
+  const panels = document.getElementById('result-panels');
+  const labels = { A: '📝 Annonce', B: '📋 Fiche', C: '📱 Pack complet' };
+  const formats = Object.keys(generatedResults).filter(f => f !== 'VENDOR');
+
+  let tabsHtml = formats.map((f, i) =>
+    `<button class="result-tab ${i===0?'active':''}" onclick="switchTab('${f}')">${labels[f]}</button>`).join('');
+
+  // Add vendor tab if data exists
+  if (generatedResults['VENDOR']) {
+    tabsHtml += `<button class="result-tab vendor-tab" onclick="switchTab('VENDOR')">📊 Analyse vendeur</button>`;
+  }
+  tabs.innerHTML = tabsHtml;
+
+  let panelsHtml = formats.map((f, i) =>
+    `<div class="result-panel ${i===0?'active':''}" id="panel-${f}">${renderPanel(f, generatedResults[f], data)}</div>`).join('');
+
+  if (generatedResults['VENDOR']) {
+    panelsHtml += `<div class="result-panel" id="panel-VENDOR">${renderVendorPanel(generatedResults['VENDOR'], data)}</div>`;
+  }
+  panels.innerHTML = panelsHtml;
+
+  section.style.display = 'block';
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderPanel(format, content, data) {
+  const prixFmt = data.prix ? parseInt(data.prix).toLocaleString('fr-FR') + ' €' : '';
+  let loc = data.ville || '';
+  if (data.arrondissement) loc += ` ${data.arrondissement}`;
+
+  if (format === 'A') {
+    return `<div class="result-text">${escapeHtml(content)}</div>
+    <div class="action-bar"><button class="btn-action primary" onclick="copyTextRaw(${JSON.stringify(content)})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copier</button></div>`;
+  }
+
+  const p1 = content.match(/PARTIE\s*1[^:]*:([\s\S]*?)(?=PARTIE\s*2|$)/i);
+  const p2 = content.match(/PARTIE\s*2[^:]*:([\s\S]*?)(?=PARTIE\s*3|$)/i);
+  const p3 = content.match(/PARTIE\s*3[^:]*:([\s\S]*?)$/i);
+  const annonce = p1 ? p1[1].trim() : content;
+  const fiche = p2 ? p2[1].trim() : '';
+  const social = p3 ? p3[1].trim() : '';
+
+  let html = `<div style="margin-bottom:1.25rem;">
+    <div style="font-size:12px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Annonce principale</div>
+    <div class="result-text">${escapeHtml(annonce)}</div>
+    <div class="action-bar"><button class="btn-action" onclick="copyTextRaw(${JSON.stringify(annonce)})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copier</button></div></div>`;
+
+  if (fiche) {
+    html += `<div style="margin-bottom:1.25rem;">
+      <div style="font-size:12px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Fiche structurée</div>
+      <div class="fiche">
+        <div class="fiche-header"><h3>${data.soustype || data.type} — ${loc}</h3>
+        <p>${data.surface ? data.surface+' m²' : ''} ${data.pieces ? '· '+data.pieces+' pièces' : ''} ${prixFmt ? '· '+prixFmt : ''}</p></div>
+        <div class="fiche-body"><div class="fiche-desc">${escapeHtml(fiche)}</div></div>
+      </div>
+      <div class="action-bar"><button class="btn-action" onclick="copyTextRaw(${JSON.stringify(fiche)})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copier la fiche</button></div></div>`;
+  }
+
+  if (social) {
+    const liMatch = social.match(/LINKEDIN[^:]*:([\s\S]*?)(?=INSTAGRAM|$)/i);
+    const igMatch = social.match(/INSTAGRAM[^:]*:([\s\S]*?)$/i);
+    const linkedin = liMatch ? liMatch[1].trim() : '';
+    const instagram = igMatch ? igMatch[1].trim() : '';
+    if (linkedin || instagram) {
+      html += `<div>
+        <div style="font-size:12px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Réseaux sociaux</div>
+        <div class="social-cards">
+          ${linkedin ? `<div class="social-card"><div class="social-header"><div class="social-dot" style="background:#0A66C2"></div>LinkedIn</div>
+            <div class="social-body">${escapeHtml(linkedin)}</div>
+            <div style="padding:0 14px 14px"><button class="btn-action" onclick="copyTextRaw(${JSON.stringify(linkedin)})" style="width:100%;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copier</button></div></div>` : ''}
+          ${instagram ? `<div class="social-card"><div class="social-header"><div class="social-dot" style="background:#E1306C"></div>Instagram</div>
+            <div class="social-body">${escapeHtml(instagram)}</div>
+            <div style="padding:0 14px 14px"><button class="btn-action" onclick="copyTextRaw(${JSON.stringify(instagram)})" style="width:100%;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copier</button></div></div>` : ''}
+        </div></div>`;
+    }
+  }
+  return html;
+}
+
+function renderVendorPanel(v, data) {
+  const posClass = v.positionnement === 'SOUS-ÉVALUÉ' ? 'pos-under' : v.positionnement === 'PREMIUM' ? 'pos-premium' : 'pos-normal';
+  const posEmoji = v.positionnement === 'SOUS-ÉVALUÉ' ? '📈' : v.positionnement === 'PREMIUM' ? '⭐' : '✅';
+
+  const cardColor = (color) => `background:${color};`;
+
+  return `
+  <div style="margin-bottom:0.75rem;">
+    <p style="font-size:13px;color:var(--text-muted);">Analyse basée sur les données du marché immobilier français. À titre indicatif — les prix peuvent varier selon les conditions actuelles du marché.</p>
+  </div>
+  <div class="vendor-grid">
+    <div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-icon" style="${cardColor('#DBEAFE')}">💶</div>
+        <div class="vendor-card-title">Prix moyen au m²</div>
+      </div>
+      <div class="vendor-card-body">
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--blue);margin-bottom:8px;">${escapeHtml(v.prix_m2_moyen)}</div>
+        ${escapeHtml(v.prix_m2_explication)}
+      </div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-icon" style="${cardColor('#D1FAE5')}">🏠</div>
+        <div class="vendor-card-title">Biens similaires</div>
+      </div>
+      <div class="vendor-card-body">
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--green);margin-bottom:8px;">${escapeHtml(v.fourchette_similaires)}</div>
+        ${escapeHtml(v.fourchette_explication)}
+      </div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-icon" style="${cardColor('#FEF3C7')}">⏱️</div>
+        <div class="vendor-card-title">Délai de vente estimé</div>
+      </div>
+      <div class="vendor-card-body">
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);margin-bottom:8px;">${escapeHtml(v.delai_vente)}</div>
+        ${escapeHtml(v.delai_explication)}
+      </div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-icon" style="${cardColor('#EDE9FE')}">🎯</div>
+        <div class="vendor-card-title">Positionnement du bien</div>
+      </div>
+      <div class="vendor-card-body">
+        <div class="positioning-badge ${posClass}">${posEmoji} ${escapeHtml(v.positionnement)}</div>
+        ${escapeHtml(v.positionnement_explication)}
+      </div>
+    </div>
+    <div class="vendor-card full-width">
+      <div class="vendor-card-header">
+        <div class="vendor-card-icon" style="${cardColor('#FEE2E2')}">💡</div>
+        <div class="vendor-card-title">Conseils pour optimiser la vente</div>
+      </div>
+      <div class="vendor-card-body">${escapeHtml(v.conseils)}</div>
+    </div>
+  </div>
+  <div class="action-bar">
+    <button class="btn-action" onclick="copyVendorReport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Copier le rapport
+    </button>
+  </div>`;
+}
+
+function copyVendorReport() {
+  const v = generatedResults['VENDOR'];
+  if (!v) return;
+  const text = `ANALYSE DE MARCHÉ — HOMECOPY\n\n💶 Prix moyen au m²\n${v.prix_m2_moyen}\n${v.prix_m2_explication}\n\n🏠 Biens similaires\n${v.fourchette_similaires}\n${v.fourchette_explication}\n\n⏱️ Délai de vente estimé\n${v.delai_vente}\n${v.delai_explication}\n\n🎯 Positionnement\n${v.positionnement}\n${v.positionnement_explication}\n\n💡 Conseils\n${v.conseils}`;
+  copyTextRaw(text);
+}
+
+function switchTab(format) {
+  document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
+  const activeTab = document.querySelector(`.result-tab[onclick*="'${format}'"]`);
+  if (activeTab) activeTab.classList.add('active');
+  const activePanel = document.getElementById('panel-' + format);
+  if (activePanel) activePanel.classList.add('active');
+}
+
+function copyTextRaw(text) {
+  navigator.clipboard.writeText(text);
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:2rem;right:2rem;background:#10B981;color:white;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.15);';
+  toast.textContent = '✓ Copié dans le presse-papiers';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+function exportAllPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(37,99,235);
+  doc.text('Homecopy — Annonces générées', 20, y); y += 12;
+  doc.setFontSize(10); doc.setTextColor(100,116,139); doc.setFont('helvetica','normal');
+  doc.text('Généré le ' + new Date().toLocaleDateString('fr-FR'), 20, y); y += 16;
+  const labels = { A:'Format A — Annonce', B:'Format B — Fiche structurée', C:'Format C — Pack complet' };
+  Object.entries(generatedResults).forEach(([fmt, content]) => {
+    if (fmt === 'VENDOR') return;
+    if (y > 240) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(15,23,42);
+    doc.text(labels[fmt] || fmt, 20, y); y += 8;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+    doc.splitTextToSize(content, 170).forEach(line => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(line, 20, y); y += 5.5;
+    });
+    y += 10;
+  });
+  // Add vendor analysis to PDF
+  const v = generatedResults['VENDOR'];
+  if (v) {
+    doc.addPage(); y = 20;
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(245,158,11);
+    doc.text('Analyse de marché — Onglet Vendeur', 20, y); y += 10;
+    const vendorText = `Prix moyen au m² : ${v.prix_m2_moyen}\n${v.prix_m2_explication}\n\nBiens similaires : ${v.fourchette_similaires}\n${v.fourchette_explication}\n\nDélai de vente : ${v.delai_vente}\n${v.delai_explication}\n\nPositionnement : ${v.positionnement}\n${v.positionnement_explication}\n\nConseils :\n${v.conseils}`;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+    doc.splitTextToSize(vendorText, 170).forEach(line => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(line, 20, y); y += 5.5;
+    });
+  }
+  doc.save('homecopy-annonces.pdf');
+}
+
+function regenerate() { document.getElementById('results-section').style.display='none'; window.scrollTo({top:0,behavior:'smooth'}); }
+function showError(msg) { const el=document.getElementById('error-box'); el.textContent=msg; el.style.display='block'; }
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ============================================================
+// MONETISATION SYSTEM
+// ============================================================
+
+const PLANS = {
+  free:      { name: 'Essai gratuit', limit: 2, formats: ['A','B','C'], vendor: true, photoAI: true },
+  essentiel: { name: 'Essentiel',     limit: 15, formats: ['A','B'],    vendor: true, photoAI: false },
+  pro:       { name: 'Pro',           limit: 50, formats: ['A','B','C'], vendor: true, photoAI: true },
+  agence:    { name: 'Agence',        limit: Infinity, formats: ['A','B','C'], vendor: true, photoAI: true, advanced: true }
+};
+
+// Demo keys mapping
+const DEMO_KEYS = {
+  'HC-ESSE-NTIE-L001': 'essentiel',
+  'HC-PRO0-0000-0001': 'pro',
+  'HC-AGEN-CE00-0001': 'agence'
+};
+
+// Free trial: 2 generations — first full (A+B+C+vendor), second limited (A+B)
+const FREE_RULES = [
+  { formats: ['A','B','C'], vendor: true },
+  { formats: ['A','B'],     vendor: false }
+];
+
+function getState() {
+  try {
+    const s = localStorage.getItem('homecopy_state');
+    return s ? JSON.parse(s) : { plan: 'free', count: 0, key: null };
+  } catch(e) { return { plan: 'free', count: 0, key: null }; }
+}
+
+function saveState(state) {
+  try { localStorage.setItem('homecopy_state', JSON.stringify(state)); } catch(e) {}
+}
+
+function getCurrentPlan() {
+  const state = getState();
+  return PLANS[state.plan] || PLANS.free;
+}
+
+function canGenerate() {
+  const state = getState();
+  const plan = PLANS[state.plan] || PLANS.free;
+  if (plan.limit === Infinity) return true;
+  return state.count < plan.limit;
+}
+
+function getAvailableFormats() {
+  const state = getState();
+  if (state.plan === 'free') {
+    const rule = FREE_RULES[state.count] || FREE_RULES[1];
+    return rule ? rule.formats : [];
+  }
+  return (PLANS[state.plan] || PLANS.free).formats;
+}
+
+function vendorEnabled() {
+  const state = getState();
+  if (state.plan === 'free') {
+    const rule = FREE_RULES[state.count];
+    return rule ? rule.vendor : false;
+  }
+  return (PLANS[state.plan] || PLANS.free).vendor;
+}
+
+function isAdvanced() {
+  const state = getState();
+  return state.plan === 'agence';
+}
+
+function incrementCount() {
+  const state = getState();
+  state.count = (state.count || 0) + 1;
+  saveState(state);
+  updateBanner();
+}
+
+function updateBanner() {
+  const state = getState();
+  const plan = PLANS[state.plan] || PLANS.free;
+  const nameEl = document.getElementById('usage-plan-name');
+  const remainEl = document.getElementById('usage-remaining');
+  const bar = document.getElementById('usage-bar');
+  const cta = document.getElementById('usage-cta');
+
+  nameEl.textContent = plan.name;
+
+  if (plan.limit === Infinity) {
+    remainEl.textContent = 'Annonces illimitées';
+    bar.style.width = '100%';
+    bar.className = 'usage-bar';
+    cta.style.display = 'none';
+    return;
+  }
+
+  const used = state.count || 0;
+  const remaining = Math.max(0, plan.limit - used);
+  const pct = Math.min(100, (used / plan.limit) * 100);
+
+  remainEl.textContent = remaining + ' annonce' + (remaining > 1 ? 's' : '') + ' restante' + (remaining > 1 ? 's' : '');
+  bar.style.width = pct + '%';
+  bar.className = 'usage-bar' + (pct >= 80 ? ' warning' : '') + (pct >= 100 ? ' danger' : '');
+
+  if (state.plan === 'free') {
+    cta.textContent = 'Voir les offres';
+    cta.style.display = '';
+  } else if (remaining <= 3) {
+    cta.textContent = 'Passer à l\'offre supérieure';
+    cta.style.display = '';
+    cta.className = 'btn-upgrade accent';
+  } else {
+    cta.style.display = 'none';
+  }
+}
+
+function showPricing() {
+  document.getElementById('pricing-overlay').classList.add('open');
+}
+
+function closePricing() {
+  document.getElementById('pricing-overlay').classList.remove('open');
+}
+
+function showKeyModal() {
+  document.getElementById('pricing-overlay').classList.remove('open');
+  document.getElementById('key-overlay').classList.add('open');
+}
+
+function closeKeyModal() {
+  document.getElementById('key-overlay').classList.remove('open');
+  document.getElementById('pricing-overlay').classList.add('open');
+}
+
+function closeLimitModal() {
+  document.getElementById('limit-overlay').classList.remove('open');
+}
+
+function showLimitModal(title, message) {
+  document.getElementById('limit-title').textContent = title;
+  document.getElementById('limit-message').textContent = message;
+  document.getElementById('limit-overlay').classList.add('open');
+}
+
+function selectPlan(planId) {
+  // In production this would redirect to Stripe
+  // For demo: just show key modal
+  showKeyModal();
+}
+
+function validateKey() {
+  const key = document.getElementById('key-input').value.trim().toUpperCase();
+  const planId = DEMO_KEYS[key];
+  const errEl = document.getElementById('key-error');
+
+  if (planId) {
+    const state = getState();
+    state.plan = planId;
+    state.key = key;
+    state.count = 0;
+    saveState(state);
+    document.getElementById('key-overlay').classList.remove('open');
+    document.getElementById('pricing-overlay').classList.remove('open');
+    updateBanner();
+    errEl.style.display = 'none';
+    showToast('✓ Accès ' + PLANS[planId].name + ' activé !');
+  } else {
+    errEl.style.display = 'block';
+  }
+}
+
+function showToast(msg, color) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `position:fixed;bottom:2rem;right:2rem;background:${color||'#10B981'};color:white;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.15);`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// Override generateAll to enforce plan limits
+const _originalGenerateAll = generateAll;
+window.generateAll = async function() {
+  if (!canGenerate()) {
+    const state = getState();
+    if (state.plan === 'free') {
+      showLimitModal('Essai gratuit terminé', 'Vous avez utilisé vos 2 générations gratuites. Choisissez une offre pour continuer à utiliser Homecopy.');
+    } else {
+      const plan = PLANS[state.plan];
+      showLimitModal('Limite mensuelle atteinte', `Vous avez atteint la limite de ${plan.limit} annonces de votre offre ${plan.name}. Passez à l'offre supérieure pour continuer.`);
+    }
+    return;
+  }
+
+  // Restrict formats based on plan
+  const allowed = getAvailableFormats();
+  const toRemove = [];
+  selectedFormats.forEach(f => { if (!allowed.includes(f)) toRemove.push(f); });
+  toRemove.forEach(f => selectedFormats.delete(f));
+  allowed.forEach(f => selectedFormats.add(f));
+
+  await _originalGenerateAll();
+};
+
+// Wrap the original generateAll results to count usage
+const _origCallAll = generateAll;
+
+// Patch incrementCount into the try block after success
+const _origRenderResults = renderResults;
+window.renderResults = function(data) {
+  incrementCount();
+  _origRenderResults(data);
+};
+
+// Build advanced vendor prompt for Agence plan
+function buildVendorPrompt(data) {
+  const prixFmt = data.prix ? parseInt(data.prix).toLocaleString('fr-FR') + ' €' : 'non communiqué';
+  const prixM2 = (data.prix && data.surface) ? Math.round(parseInt(data.prix) / parseInt(data.surface)) : null;
+  let loc = data.ville || 'France';
+  if (data.arrondissement) loc += ` ${data.arrondissement} arrondissement`;
+  if (data.rue) loc += `, ${data.rue}`;
+  const advanced = isAdvanced();
+
+  return `Tu es un expert en analyse du marché immobilier français.
+
+BIEN À ANALYSER :
+- Type : ${data.soustype || data.type} — ${data.transaction || 'Vente'}
+- Localisation : ${loc}
+- Surface : ${data.surface || '?'} m²${data.terrain ? ' | Terrain : ' + data.terrain + ' m²' : ''}
+- Pièces : ${data.pieces || '?'} | État : ${data.etat || 'non précisé'} | DPE : ${data.dpe || 'non renseigné'}
+- Prix demandé : ${prixFmt}${prixM2 ? ' (soit ' + prixM2.toLocaleString('fr-FR') + ' €/m²)' : ''}
+
+Réponds UNIQUEMENT en JSON valide (sans markdown) avec cette structure :
+{
+  "prix_m2_moyen": "fourchette du prix moyen au m² dans ce secteur${advanced ? ' et dans ce quartier/rue précis' : ''}",
+  "prix_m2_explication": "2-3 phrases sur les facteurs influençant ce prix",
+  "fourchette_similaires": "fourchette de prix pour des biens similaires",
+  "fourchette_explication": "2-3 phrases sur les biens comparables",
+  "delai_vente": "délai moyen estimé",
+  "delai_explication": "2-3 phrases sur les conditions du marché local${advanced ? ' et la saisonnalité optimale pour vendre' : ''}",
+  "positionnement": "SOUS-ÉVALUÉ ou DANS LA NORME ou PREMIUM",
+  "positionnement_explication": "2-3 phrases justifiant ce positionnement"${advanced ? `,
+  "rentabilite_locative": "estimation du rendement locatif brut si le bien était mis en location",
+  "saisonnalite": "meilleure période de l'année pour vendre ce type de bien dans ce secteur",` : ','}
+  "conseils": "5 conseils numérotés et concrets pour optimiser le prix ou accélérer la vente"
+}`;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  updateBanner();
+  // Show pricing on first visit after free trial
+  const state = getState();
+  if (state.plan === 'free' && state.count >= 2) {
+    setTimeout(() => showPricing(), 500);
+  }
+});
+</script>
+</body>
+</html>
